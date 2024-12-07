@@ -1,0 +1,30 @@
+{
+  "extends": "tslint:latest",
+  "rules": {
+    "quotemark": [true, "double", "avoid-escape"],
+    "semicolon": [true, "always"],
+
+    "max-line-length": [true, 120],
+    "object-literal-sort-keys": false,
+    "ordered-imports": false,
+    "no-consecutive-blank-lines": false,
+    "no-trailing-whitespace": false,
+    "no-empty": false,
+    "no-implicit-dependencies": false,
+    "no-unnecessary-type-assertion": false,
+    "no-unnecessary-callback-wrapper": false,
+    "no-unnecessary-qualifier": false,
+    "no-unnecessary-class": false,
+    "no-unnecessary-initializer": false,
+    "no-unnecessary-override": false,
+    "no-unnecessary-type-annotation": false,
+    "no-unnecessary-else": false,
+    "no-unnecessary-semicolons": false,
+    "no-unnecessary-bind": false,
+    "no-unnecessary-field-initialization": false,
+    "no-unnecessary-local-variable": false,
+    "no-unnecessary-boolean-literal-compare": false,
+    "no-unnecessary-generics": false,
+    "no-unnecessary-type-arguments": false
+  }
+}
