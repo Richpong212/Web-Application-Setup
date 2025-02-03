@@ -2,4 +2,5 @@ nodemon
 @types/nodemon
 typescript
 ts-node
-@types/node
+concurrently 
+chokidar-cli

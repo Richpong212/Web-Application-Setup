@@ -38,5 +38,60 @@ update the script section with this comman
 then run yarn dev-install to make all the installations.
 
 4.1 lets make src folder inside the backend folder to hold all our application code.
-touch src
+mkdir src
 4.2 inside the src folder lets create all required folders for the application
+cd src; mkdir config controllers routes middlewares services utils; touch index.ts
+
+## CONTINUE WITH BLOG
+
+# 4.3 make the initial setup for the application using express in the index.ts file.
+
+import express from "express";
+import { Request, Response } from "express";
+
+const app = express();
+
+const port = 5004;
+
+app.get("/", (req: Request, res: Response) => {
+res.status(200).json({ message: "Hello from the backend!" });
+});
+
+app.listen(port, () => {
+console.log(`Server is running on http://localhost:${port}`);
+});
+
+export default app;
+
+# 4.4 configure nodemon to run the test the application.
+
+# 4.5: Let us configure eslint
+
+run: yarn create @eslint/config
+follow the promt and choose the following settings
+
+kwakurich@Kwakus-MacBook-Pro backend % yarn create @eslint/config
+yarn create v1.22.22
+[1/4] 🔍 Resolving packages...
+[2/4] 🚚 Fetching packages...
+[3/4] 🔗 Linking dependencies...
+[4/4] 🔨 Building fresh packages...
+
+success Installed "@eslint/create-config@1.4.0" with binaries: - create-config
+[#################################################################################################] 97/97@eslint/create-config: v1.4.0
+
+✔ How would you like to use ESLint? · problems
+✔ What type of modules does your project use? · esm
+✔ Which framework does your project use? · none
+✔ Does your project use TypeScript? · typescript
+✔ Where does your code run? · node
+The config that you've selected requires the following dependencies:
+
+eslint, globals, @eslint/js, typescript-eslint
+✔ Would you like to install them now? · No / Yes
+✔ Which package manager do you want to use? · yarn
+☕️Installing...
+
+# 4.6 Update the package.json with eslint configuration
+
+install concurrently chokidar-cli for running the eslint concurrently

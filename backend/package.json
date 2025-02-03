@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev-install": "yarn add $(cat requirement.txt) && yarn add $(cat dev-requirements.txt) --dev"
+    "devinstall": "yarn add $(cat requirement.txt) && yarn add $(cat dev-requirements.txt) --dev",
+    "dev-start": "nodemon src/index.ts",
+    "dev": "yarn dev-start & yarn lint:watch",
+    "lint": "eslint src/**/*.ts ",
+    "lint:watch": "chokidar 'src/**/*.ts' -c 'yarn lint'",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "CodeGenitor Deepdive",
@@ -17,10 +22,16 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.19.0",
     "@types/node": "^22.13.0",
     "@types/nodemon": "^1.19.6",
+    "chokidar-cli": "^3.0.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.19.0",
+    "globals": "^15.14.0",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
   }
 }
