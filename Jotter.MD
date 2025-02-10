@@ -42,7 +42,7 @@ mkdir src
 4.2 inside the src folder lets create all required folders for the application
 cd src; mkdir config controllers routes middlewares services utils; touch index.ts
 
-## CONTINUE WITH BLOG
+################ CONTINUE WITH BLOG ##############################################
 
 # 4.3 make the initial setup for the application using express in the index.ts file.
 
@@ -95,3 +95,103 @@ eslint, globals, @eslint/js, typescript-eslint
 # 4.6 Update the package.json with eslint configuration
 
 install concurrently chokidar-cli for running the eslint concurrently
+
+# 5.0 Setting up the frontend react project.
+
+make a frontend folder inside the rootdir and open in terminal
+
+# 5.1 Run npx create-react-app . --template typescript :
+
+to create the react app and using typescript. ommit the template if you want to use raw javascript
+
+# 5.2 solving react 19 common problems
+
+Error: npm error code ERESOLVE
+npm error ERESOLVE unable to resolve dependency tree
+npm error code ERESOLVE
+npm error ERESOLVE unable to resolve dependency tree
+
+SOLUTION:
+
+# Run the following command to fix the issue:
+
+npm config set legacy-peer-deps true
+
+# 5.3 Remove all the preloaded files and run the command again to create and this will resolve all issues.
+
+You can delete them manually or you can use the commanline inside the frontend folder. Warning becareful, avoid deleting all your files if you do not run it inside the frontend
+rm -rf \*; npx create-react-app --template typescript .
+
+# 5.4 solving errors related to yarn start
+
+Cannot find module 'ajv/dist/compile/codegen'
+error Command failed with exit code 1.
+
+SOLUTION:
+DELETE the nodemodule folder and run yarn install
+
+# 5.5 solving the warming message
+
+One of your dependencies, babel-preset-react-app, is importing the
+"@babel/plugin-proposal-private-property-in-object" package without
+declaring it in its dependencies. This is currently working because
+"@babel/plugin-proposal-private-property-in-object" is already in your
+node_modules folder for unrelated reasons, but it may break at any time.
+
+SOLUTION:
+run - yarn add @babel/plugin-proposal-private-property-in-object
+
+# 5.6 yarn start should work without any challenges now.
+
+# 5.7 configure eslint- to enforce clean code architecture.
+
+Run- npx eslint --init and follow the prompt
+Options to select:
+slint/create-config: v1.4.0
+
+✔ How would you like to use ESLint? · problems
+✔ What type of modules does your project use? · esm
+✔ Which framework does your project use? · react
+✔ Does your project use TypeScript? · typescript
+✔ Where does your code run? · browser
+The config that you've selected requires the following dependencies:
+
+eslint, globals, @eslint/js, typescript-eslint, eslint-plugin-react
+✔ Would you like to install them now? · No / Yes
+✔ Which package manager do you want to use? · yarn
+
+## eslint problem
+
+ERROR
+[eslint] Failed to load config "react-app" to extend from.
+Referenced from: /Users/kwakurich/Documents/Web-Application-Setup/frontend/package.json
+
+SOLUTION:
+install eslint-config-react-app manually
+yarn add -D eslint-config-react-app
+
+## Add rules to the eslint files.
+
+sample
+import globals from "globals";
+import pluginJs from "@eslint/js";
+import tseslint from "typescript-eslint";
+import pluginReact from "eslint-plugin-react";
+
+/** @type {import('eslint').Linter.Config[]} \*/
+export default [
+{
+files: ["./src/**/_.ts", "./src/\*\*/_.tsx"],
+},
+{ languageOptions: { globals: globals.browser } },
+pluginJs.configs.recommended,
+...tseslint.configs.recommended,
+pluginReact.configs.flat.recommended,
+{
+rules: {
+"no-console": "off",
+"no-undef": "off",
+"no-unused-vars": "off",
+},
+},
+];
