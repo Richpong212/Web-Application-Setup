@@ -2,3 +2,14 @@ express
 @types/express
 cors
 @types/cors
+memcached
+@types/memcached
+dotenv
+helmet
+@types/helmet
+pg
+@types/pg
+sequelize
+@types/sequelize
+pg-hstore
+

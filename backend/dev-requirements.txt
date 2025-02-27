@@ -4,3 +4,7 @@ typescript
 ts-node
 concurrently 
 chokidar-cli
+morgan
+@types/morgan
+winston
+@types/winston

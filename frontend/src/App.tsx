@@ -1,26 +1,26 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import { test } from './services/index.service';
 
-function App() {
+const App = () => {
+  const [data, setData]: any = useState(null);
+  console.log(data);
+
+  const fetchData = async () => {
+    const response = await test();
+    setData(response);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <div className='bg-gray-900 h-screen flex justify-center items-center flex-col'>
+      <h1 className='text-3xl font-bold text-blue-600' > Welcome CodeGenitor</h1 >
+      <h2 className='text-2xl font-bold text-white' >cached: {data?.cached ? 'true' : 'false'}</h2>
+      <h2 className='text-2xl font-bold text-white' >message: {data?.message}</h2>
+    </div >
   );
-}
+};
 
 export default App;

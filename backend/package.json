@@ -6,6 +6,7 @@
     "devinstall": "yarn add $(cat requirement.txt) && yarn add $(cat dev-requirements.txt) --dev",
     "dev-start": "nodemon src/index.ts",
     "dev": "yarn dev-start & yarn lint:watch",
+    "start": "yarn build && NODE_ENV=production node build/index.js",
     "lint": "eslint src/**/*.ts ",
     "lint:watch": "chokidar 'src/**/*.ts' -c 'yarn lint'",
     "build": "tsc"
@@ -18,20 +19,34 @@
   "dependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/helmet": "^4.0.0",
+    "@types/memcached": "^2.2.10",
+    "@types/pg": "^8.11.11",
+    "@types/sequelize": "^4.28.20",
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "memcached": "^2.2.2",
+    "pg": "^8.13.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@types/morgan": "^1.9.9",
     "@types/node": "^22.13.0",
     "@types/nodemon": "^1.19.6",
+    "@types/winston": "^2.4.4",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.1.2",
     "eslint": "^9.19.0",
     "globals": "^15.14.0",
+    "morgan": "^1.10.0",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.22.0"
+    "typescript-eslint": "^8.22.0",
+    "winston": "^3.17.0"
   }
 }

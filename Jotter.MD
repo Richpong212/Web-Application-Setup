@@ -195,3 +195,176 @@ rules: {
 },
 },
 ];
+
+## configure the package.json in react to run yarn dev to start the application both backend and frontend
+
+- configure dev-dependencies.txt to store all the requirements for development
+- create another file in the root dependencies.txt to store required dependencies
+- configure the package.json to run both frontend and backend
+  {"scripts": {
+  "dev": "concurrently \"yarn frontend-dev\" \"yarn backend-dev\"",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject",
+  "devinstall": "yarn add $(cat dev-dependencies.txt) --dev && yarn add $(cat dependencies.txt)",
+  "frontend-dev": "react-scripts start",
+  "backend-dev": "cd ../backend && yarn dev"
+  },}
+
+## adding tailwind to react app
+
+npm install -D tailwindcss@3
+npx tailwindcss init
+"/** @type {import('tailwindcss').Config} \*/
+module.exports = {
+content: [
+"./src/**/\*.{js,jsx,ts,tsx}",
+],
+theme: {
+extend: {},
+},
+plugins: [],
+}"
+
+## configure memcached for the backend
+
+yarn add memcached
+import express from "express";
+import { Request, Response } from "express";
+import Memcached from "memcached";
+
+const app = express();
+const port = 5004;
+
+const memcached = new Memcached("localhost:11211");
+
+app.get("/", (req: Request, res: Response) => {
+const cacheKey = "testkey";
+memcached.get(cacheKey, (err, data) => {
+if (err) {
+console.error("Error retrieving from cache:", err);
+return res.status(500).json({ error: "Error retrieving from cache" });
+}
+if (data) {
+console.log("Data retrieved from cache:", data);
+return res
+.status(200)
+.json({ cached: true, message: "data from cache", data });
+} else {
+const message = "Hello from the backend!";
+memcached.set(cacheKey, message, 60, (err) => {
+if (err) {
+console.error("Error saving to cache:", err);
+return res.status(500).json({ error: "Error saving to cache" });
+}
+return res.status(200).json({ cached: false, message });
+});
+}
+});
+});
+
+app.listen(port, () => {
+console.log(`Server is running on http://localhost:${port}`);
+});
+
+export default app;
+
+# configure backend with winston,dotenv, morgan,sequelize,pg
+
+# configure .env for backend - dev and prod.
+
+## backend/src/config/index.config.ts
+
+import { config } from "dotenv";
+
+// APP mode
+const mode = process.env.NODE_ENV || "development";
+
+config({ path: `.${mode}.env` });
+
+export const appConfig = {
+app: {
+mode,
+port: process.env.APP_PORT,
+app_host: process.env.APP_HOST,
+},
+};
+
+# configure the package.json to also run start in production
+
+"scripts": {
+"devinstall": "yarn add $(cat requirement.txt) && yarn add $(cat dev-requirements.txt) --dev",
+"dev-start": "nodemon src/index.ts",
+"dev": "yarn dev-start & yarn lint:watch",
+"start": "yarn build && NODE_ENV=production node build/index.js",
+"lint": "eslint src/**/\*.ts ",
+"lint:watch": "chokidar 'src/**/\*.ts' -c 'yarn lint'",
+"build": "tsc"
+},
+
+# configure backend to use morgan,cors
+
+# configure logger and remove all console.log
+
+backend/src/utils/logger.utils.ts
+import winston from "winston";
+// Logger configuration
+export const logger = winston.createLogger({
+level: "info",
+transports: [
+new winston.transports.Console({
+format: winston.format.combine(
+winston.format.colorize(),
+winston.format.simple()
+),
+}),
+new winston.transports.File({
+filename: "logs/app.log",
+level: "info",
+}),
+],
+});
+
+# configure frontend to talk to the backend both development and production.
+
+# frontend/src/services/index.service.ts
+
+import axios from "axios";
+
+const api_url = process.env.REACT_APP_API_URL;
+console.log(api_url);
+
+// test route
+export const test = async () => {
+const response = await axios.get(`${api_url}`);
+return response.data;
+};
+
+# frontend/src/App.tsx
+
+import React, { useEffect, useState } from 'react';
+import { test } from './services/index.service';
+
+const App = () => {
+const [data, setData]: any = useState(null);
+console.log(data);
+
+const fetchData = async () => {
+const response = await test();
+setData(response);
+};
+
+useEffect(() => {
+fetchData();
+}, []);
+
+return (
+<div className='bg-gray-900 h-screen flex justify-center items-center flex-col'>
+<h1 className='text-3xl font-bold text-blue-600' > Welcome CodeGenitor</h1 >
+<h2 className='text-2xl font-bold text-white' >cached: {data?.cached ? 'true' : 'false'}</h2>
+<h2 className='text-2xl font-bold text-white' >message: {data?.message}</h2>
+</div >
+);
+};
+
+export default App;
