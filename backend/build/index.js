@@ -26,13 +26,11 @@ app.get("/", (req, res) => {
         }
         if (data) {
             logger_utils_1.logger.info("Data retrieved from cache:", data);
-            return res
-                .status(200)
-                .json({ cached: true, message: "data from cache", data });
+            return res.status(200).json({ cached: true, message: "data from cache" });
         }
         else {
             const message = "Hello from the backend!";
-            memcached.set(cacheKey, message, 60, (err) => {
+            memcached.set(cacheKey, message, 10, (err) => {
                 if (err) {
                     logger_utils_1.logger.error("Error saving to cache:", err);
                     return res.status(500).json({ error: "Error saving to cache" });

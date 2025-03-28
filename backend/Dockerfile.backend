@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /backend
+
+COPY package*.json ./
+
+COPY . .
+
+#install yarn
+RUN npm install -g yarn --force
+
+RUN yarn install
+
+EXPOSE 5004
+
+RUN yarn build
+
+CMD ["yarn", "start"]

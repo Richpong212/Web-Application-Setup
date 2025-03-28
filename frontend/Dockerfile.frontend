@@ -1,0 +1,16 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+COPY . .
+
+#install yarn
+RUN npm install -g yarn --force
+
+RUN yarn install
+
+EXPOSE 3000
+
+CMD ["yarn", "frontend-dev"]

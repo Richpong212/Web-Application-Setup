@@ -1,0 +1,61 @@
+services:
+  ##FRONTEND##
+  frontend:
+    depends_on:
+      - backend
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      tags:
+        - frontend:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/frontend
+    env_file:
+      - ./frontend/.env
+    networks:
+      - frontend
+      - backend
+
+  ##BACKEND##
+  backend:
+    depends_on:
+      - memcached
+    container_name: web-app-setup-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+      tags:
+        - backend:latest
+    ports:
+      - "5004:5004"
+    volumes:
+      - ./backend:/backend
+    env_file:
+      - ./backend/.production.env
+    networks:
+      - backend
+      - frontend
+      - memcached
+
+  ##MEMCACHED##
+  memcached:
+    image: memcached:latest
+    container_name: memcached
+    restart: always
+    ports:
+      - "11211:11211"
+    networks:
+      - backend
+      - memcached
+
+##network##
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+  memcached:
+    driver: bridge
