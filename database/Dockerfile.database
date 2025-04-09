@@ -1,0 +1,14 @@
+FROM postgres:16-alpine
+
+# Set environment variables
+ENV POSTGRES_DB=${POSTGRES_DB}
+ENV POSTGRES_USER=${POSTGRES_USER}
+ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+ENV ENV=${ENV}
+
+# Copy initialization scripts
+COPY init-db.sh /docker-entrypoint-initdb.d/init-db.sh
+COPY seed-dev.sql /docker-entrypoint-initdb.d/seed-dev.sql
+
+# Make init script executable
+RUN chmod +x /docker-entrypoint-initdb.d/init-db.sh
