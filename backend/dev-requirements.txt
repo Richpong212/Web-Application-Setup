@@ -1,5 +1,4 @@
 nodemon
-@types/nodemon
 typescript
 ts-node
 concurrently 
