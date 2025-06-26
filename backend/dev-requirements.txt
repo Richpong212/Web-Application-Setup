@@ -7,3 +7,6 @@ morgan
 @types/morgan
 winston
 @types/winston
+@types/cookie-parser
+@types/compression
+express-validator

@@ -25,6 +25,8 @@ export default [
       "callback-return": ["error", ["callback", "cb", "next"]],
       "handle-callback-err": ["error", "^err"],
       "no-path-concat": "error",
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ];

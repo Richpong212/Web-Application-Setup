@@ -1,0 +1,11 @@
+# Use the official Redis Alpine image
+FROM redis:7-alpine
+
+# Copy our custom config (enables AOF for persistence, sets bind 0.0.0.0)
+COPY redis.conf /usr/local/etc/redis/redis.conf
+
+# Run as the redis user for security
+USER redis
+
+# Start Redis with our config
+CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]

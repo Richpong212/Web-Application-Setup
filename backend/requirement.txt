@@ -12,4 +12,7 @@ pg
 sequelize
 @types/sequelize
 pg-hstore
+cookie-parser
+express-rate-limit
+compression
 
