@@ -2,7 +2,6 @@ nodemon
 typescript
 ts-node
 concurrently 
-chokidar-cli
 morgan
 @types/morgan
 winston
@@ -10,3 +9,4 @@ winston
 @types/cookie-parser
 @types/compression
 express-validator
+chalk

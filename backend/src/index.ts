@@ -10,6 +10,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
+import userRouter from "./routes/user.route";
 
 const app = express();
 const port = appConfig.app.port;
@@ -28,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     credentials: true,
-  })
+  }),
 );
 app.use(cookieParser());
 app.use(
@@ -36,15 +37,22 @@ app.use(
     contentSecurityPolicy: {
       useDefaults: true,
     },
-  })
+  }),
 );
 app.use(limiter);
 app.use(compression()); // compress response for speed
 
 const memcached = new Memcached(
-  `${appConfig.app.memcached_host}:${appConfig.app.memcached_port}`
+  `${appConfig.app.memcached_host}:${appConfig.app.memcached_port}`,
 );
 
+//routes
+// health check endpoint (keep only one)
+app.get("/health", (_req: Request, res: Response) => {
+  res.status(200).json({ message: "Server is healthy" });
+});
+
+// cachinng endpoint
 app.get("/", (req: Request, res: Response) => {
   const cacheKey = "testkey";
   memcached.get(cacheKey, (err, data) => {
@@ -68,9 +76,12 @@ app.get("/", (req: Request, res: Response) => {
   });
 });
 
+//User routes
+app.use("/api/v1/users", userRouter);
+
 app.listen(port, async () => {
   logger.info(
-    `Server is running on http://${appConfig.app.app_host}:${port} in ${appConfig.app.mode} mode`
+    `Server is running on http://${appConfig.app.app_host}:${port} in ${appConfig.app.mode} mode`,
   );
 
   await connectDb();
