@@ -3,7 +3,6 @@ import { appConfig } from "./index.config";
 import { logger } from "../utils/logger.utils";
 import path from "path";
 import fs from "fs";
-import chalk from "chalk";
 
 export const db = new Sequelize(
   appConfig.db.db_name!,
@@ -25,23 +24,20 @@ export const db = new Sequelize(
 
 export const connectDb = async () => {
   try {
-    logger.info(chalk.cyan("🔌 Connecting to PostgreSQL..."));
+    logger.info("[DATABASE] Connecting to PostgreSQL...");
 
     await db.authenticate();
 
     logger.info(
-      chalk.green(
-        `✅ Connected to PostgreSQL (${appConfig.db.db_host}:${appConfig.db.db_port})`,
-      ),
+      `[DATABASE] Connected to PostgreSQL (${appConfig.db.db_host}:${appConfig.db.db_port})`,
     );
 
-    logger.info(chalk.yellow("📦 Loading Sequelize models..."));
+    logger.info("[MODELS] Loading Sequelize models...");
 
     const modelPath = path.join(__dirname, "../models");
 
-    // Use the async fs API to avoid synchronous filesystem calls which can
-    // trigger linter errors about unexpected sync methods.
     const allFiles = await fs.promises.readdir(modelPath);
+
     const modelFiles = allFiles.filter(
       (file) => file.endsWith(".js") || file.endsWith(".ts"),
     );
@@ -58,30 +54,28 @@ export const connectDb = async () => {
           db.models[model.name] = model;
           loadedModels++;
 
-          logger.info(chalk.green(`   ✓ Loaded model: ${model.name}`));
+          logger.info(`[MODELS] Loaded model: ${model.name}`);
         } else {
-          logger.warn(chalk.yellow(`   ⚠️ No default export found in ${file}`));
+          logger.warn(`[MODELS] No default export found in ${file}`);
         }
       } catch (err) {
-        logger.error(chalk.red(`   ❌ Failed loading model: ${file}`));
-
+        logger.error(`[MODELS] Failed loading model: ${file}`);
         logger.error(err);
       }
     });
 
-    logger.info(chalk.blue(`📊 Total models loaded: ${loadedModels}`));
+    logger.info(`[MODELS] Total models loaded: ${loadedModels}`);
 
-    logger.info(chalk.magenta("🔄 Synchronizing database schema..."));
+    logger.info("[DATABASE] Synchronizing database schema...");
 
     await db.sync({
       alter: true,
       force: false,
     });
 
-    logger.info(chalk.green.bold("🚀 Database synchronized successfully"));
+    logger.info("[DATABASE] Database synchronized successfully");
   } catch (error) {
-    logger.error(chalk.red.bold("❌ Unable to connect to the database"));
-
+    logger.error("[DATABASE] Unable to connect to the database");
     logger.error(error);
   }
 };
