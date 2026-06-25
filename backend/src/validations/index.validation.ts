@@ -1,11 +1,12 @@
 import { validationResult } from "express-validator";
-import { Response, NextFunction, Request } from "express";
+import { RequestHandler } from "express";
 
-export const validate = (req: Request, res: Response, next: NextFunction) => {
+export const validate: RequestHandler = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // Return only the first error message
-    return res.status(400).json({ message: errors.array()[0].msg });
+    res.status(400).json({ message: errors.array()[0].msg });
+    return;
   }
-  return next();
+  next();
 };

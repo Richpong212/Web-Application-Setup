@@ -10,3 +10,7 @@ winston
 @types/compression
 express-validator
 chalk
+bcryptjs
+jsonwebtoken
+nodemailer
+@types/nodemailer
