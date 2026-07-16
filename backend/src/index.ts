@@ -14,6 +14,8 @@ import userRouter from "./routes/user.route";
 
 const app = express();
 const port = appConfig.app.port;
+const memcachedHost = process.env.MEMCACHED_HOST || "localhost";
+const memcachedPort = Number(process.env.MEMCACHED_PORT || 11211);
 
 //rate limiting
 const limiter = rateLimit({
@@ -43,7 +45,7 @@ app.use(limiter);
 app.use(compression()); // compress response for speed
 
 const memcached = new Memcached(
-  `${appConfig.app.memcached_host}:${appConfig.app.memcached_port}`,
+  `${memcachedHost}:${memcachedPort}`,
 );
 
 //routes
@@ -55,7 +57,7 @@ app.get("/health", (_req: Request, res: Response) => {
 // cachinng endpoint
 app.get("/", (req: Request, res: Response) => {
   const cacheKey = "testkey";
-  memcached.get(cacheKey, (err, data) => {
+  memcached.get(cacheKey, (err: Error | null, data: unknown) => {
     if (err) {
       logger.error("Error retrieving from cache:", err);
       return res.status(500).json({ error: "Error retrieving from cache" });
@@ -65,7 +67,7 @@ app.get("/", (req: Request, res: Response) => {
       return res.status(200).json({ cached: true, message: "data from cache" });
     } else {
       const message = "Hello from the backend!";
-      memcached.set(cacheKey, message, 10, (err) => {
+      memcached.set(cacheKey, message, 10, (err: Error | null) => {
         if (err) {
           logger.error("Error saving to cache:", err);
           return res.status(500).json({ error: "Error saving to cache" });
