@@ -1,0 +1,279 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - "k8s/base/backend/**"
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - "k8s/base/backend/**"
+
+concurrency:
+  group: sample-app-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+env:
+  IMAGE_NAME: ${{ vars.BACKEND_IMAGE_NAME || format('ghcr.io/{0}/backend', github.repository) }}
+  IMAGE_TAG: ${{ github.sha }}
+  DOCKERFILE_PATH: ./backend/Dockerfile.backend
+  BUILD_CONTEXT: ./backend
+  KUSTOMIZATION_PATH: k8s/overlays/dev/kustomization.yml
+
+jobs:
+  check:
+    name: Check backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: yarn install --immutable
+
+      - name: Run backend checks
+        working-directory: backend
+        run: yarn check
+
+  dependency-scan:
+    name: Scan backend dependencies
+    runs-on: ubuntu-latest
+    needs:
+      - check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Scan backend filesystem
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: backend
+          scanners: vuln,secret
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+  image-scan:
+    name: Build and scan backend image
+    runs-on: ubuntu-latest
+    needs:
+      - dependency-scan
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BUILD_CONTEXT }}
+          file: ${{ env.DOCKERFILE_PATH }}
+          push: false
+          load: true
+          platforms: linux/amd64
+          no-cache: true
+          provenance: false
+          sbom: false
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Generate backend SBOM
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: cyclonedx
+          output: backend-sbom.cdx.json
+
+      - name: Upload backend SBOM
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-sbom-${{ env.IMAGE_TAG }}
+          path: backend-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish backend image
+    runs-on: ubuntu-latest
+    needs:
+      - image-scan
+
+    if: github.event_name == 'push'
+
+    outputs:
+      image-digest: ${{ steps.publish-image.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        id: publish-image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BUILD_CONTEXT }}
+          file: ${{ env.DOCKERFILE_PATH }}
+          push: true
+          platforms: linux/arm64
+          no-cache: true
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_NAME }}:dev
+
+  sign:
+    name: Sign backend image
+    runs-on: ubuntu-latest
+    needs:
+      - publish
+
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign backend image
+        env:
+          IMAGE_DIGEST: ${{ needs.publish.outputs.image-digest }}
+        run: |
+          cosign sign --yes \
+            "${IMAGE_NAME}@${IMAGE_DIGEST}"
+
+  update-dev:
+    name: Update backend dev manifest
+    runs-on: ubuntu-latest
+    needs:
+      - sign
+
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Update backend Kustomize image tag
+        env:
+          NEW_IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          python <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("k8s/overlays/dev/kustomization.yml")
+          image_name = "sample-app-backend-image"
+          new_tag = os.environ["NEW_IMAGE_TAG"]
+
+          lines = path.read_text().splitlines()
+          updated = False
+          inside_target_image = False
+
+          for index, line in enumerate(lines):
+              stripped = line.strip()
+
+              if stripped.startswith("- name:"):
+                  current_image = stripped.split(":", 1)[1].strip()
+                  inside_target_image = current_image == image_name
+                  continue
+
+              if inside_target_image and stripped.startswith("newTag:"):
+                  indentation = line[: len(line) - len(line.lstrip())]
+                  lines[index] = f'{indentation}newTag: "{new_tag}"'
+                  updated = True
+                  break
+
+          if not updated:
+              raise SystemExit(
+                  f"Could not find newTag for image '{image_name}' in {path}"
+              )
+
+          path.write_text("\n".join(lines) + "\n")
+          PY
+
+      - name: Validate updated tag
+        run: |
+          grep -A3 \
+            "name: sample-app-backend-image" \
+            "${KUSTOMIZATION_PATH}"
+
+      - name: Commit and push manifest update
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@users.noreply.github.com"
+
+          git add "${KUSTOMIZATION_PATH}"
+
+          if git diff --cached --quiet; then
+            echo "No backend image tag change to commit"
+            exit 0
+          fi
+
+          git commit \
+            -m "chore: update backend dev image to ${IMAGE_TAG}"
+
+          git pull --rebase origin dev
+          git push origin HEAD:dev

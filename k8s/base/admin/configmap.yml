@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-app-admin-config
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/component: sample-app-admin
+
+data:
+  VITE_API_URL: https://api.example.com

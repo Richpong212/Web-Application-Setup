@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app-redis
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sample-app
+      app.kubernetes.io/component: sample-app-redis
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sample-app
+        app.kubernetes.io/component: sample-app-redis
+
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - redis-server
+
+          args:
+            - --appendonly
+            - "yes"
+            - --requirepass
+            - "$(REDIS_PASSWORD)"
+
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sample-app-redis-auth
+                  key: password
+
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: sample-app-redis-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sample-app-redis-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+  storageClassName: local-path
+
+  resources:
+    requests:
+      storage: 1Gi
