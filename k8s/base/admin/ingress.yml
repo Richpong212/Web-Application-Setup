@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sample-app-admin
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/component: sample-app-admin
+
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+    - hosts:
+        - admin.example.com
+      secretName: admin-example-com-tls
+
+  rules:
+    - host: admin.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sample-app-admin
+                port:
+                  number: 3004

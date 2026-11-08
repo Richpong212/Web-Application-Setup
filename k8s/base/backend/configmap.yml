@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-app-backend-config
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/component: sample-app-backend
+data:
+  NODE_ENV: development
+
+  APP_PORT: "5010"
+  APP_HOST: "0.0.0.0"
+
+  POSTGRES_HOST: sample-app-postgres-rw
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: sample_app_dev
+  POSTGRES_USER: sample_app_user
+
+  REDIS_HOST: sample-app-redis
+  REDIS_PORT: "6379"
+
+  CLIENT_URL: https://app.example.com
+  ALLOWED_ORIGINS: https://app.example.com,https://admin.example.com
+
+  REQUEST_BODY_LIMIT: 100kb
+
+  AUTH_COOKIE_NAME: app_session
+  AUTH_COOKIE_SAME_SITE: strict
+  LOGIN_TOKEN_TTL: 3d
+  AUTH_COOKIE_MAX_AGE_MS: "3600000"
+
+  AUTH_RATE_LIMIT_WINDOW_MS: "900000"
+  AUTH_RATE_LIMIT_MAX: "10"
+
+  ADMIN_RATE_LIMIT_WINDOW_MS: "900000"
+  ADMIN_RATE_LIMIT_MAX: "60"
+
+  GLOBAL_RATE_LIMIT_WINDOW_MS: "900000"
+  GLOBAL_RATE_LIMIT_MAX: "100"
+
+  AWS_REGION: us-east-1
+  AWS_S3_BUCKET: CHANGE_ME_S3_BUCKET
+  AWS_S3_PROPERTY_IMAGE_PREFIX: uploads
+  AWS_S3_PUBLIC_BASE_URL: https://CHANGE_ME_S3_BUCKET.s3.amazonaws.com
+  AWS_PRESIGNED_UPLOAD_TTL_SECONDS: "300"
+
+  PROPERTY_IMAGE_MAX_BYTES: "5242880"
+  PROPERTY_IMAGE_ALLOWED_TYPES: image/jpeg,image/png,image/webp
+
+  SMTP_HOST: smtp.gmail.com
+  SMTP_PORT: "587"
+  SMTP_EMAIL: noreply@example.com
+  SMTP_FROM_NAME: CHANGE_ME_APP_NAME
+  SMTP_FROM_EMAIL: noreply@example.com
+  SMTP_SECURE: "false"
+  SMTP_REQUIRE_TLS: "true"

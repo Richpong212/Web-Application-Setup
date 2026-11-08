@@ -1,71 +1,81 @@
 services:
+  ##DATABASE##
   database:
-    image: postgres:16-alpine
+    container_name: webappsetupDatab
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-appdb}
-      POSTGRES_USER: ${POSTGRES_USER:-appuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    build:
+      context: ./database
+      dockerfile: Dockerfile.database
+      tags:
+        - webappsetup:latest
+    env_file:
+      - ./database/.env
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-  # Run with: docker compose --env-file backend/local.env up -d redis
-  redis:
-    image: redis:7.4-alpine
-    restart: unless-stopped
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in backend/local.env}
-      REDIS_PORT: ${REDIS_PORT:?Set REDIS_PORT in backend/local.env}
-    command: ["sh", "-c", 'exec redis-server --port "$$REDIS_PORT" --requirepass "$$REDIS_PASSWORD" --appendonly yes']
+
+  ##FRONTEND##
+  frontend:
+    depends_on:
+      - backend
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      tags:
+        - frontend:latest
     ports:
-      - "127.0.0.1:${REDIS_PORT}:${REDIS_PORT}"
+      - "3000:3000"
     volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli -p "$$REDIS_PORT" ping']
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      - ./frontend:/frontend
+    env_file:
+      - ./frontend/.env
+    networks:
+      - frontend
+      - backend
+
+  ##BACKEND##
   backend:
+    depends_on:
+      - memcached
+    container_name: web-app-setup-backend
     build:
       context: ./backend
       dockerfile: Dockerfile.backend
-    restart: unless-stopped
-    init: true
-    env_file:
-      - ./backend/local.env
-    environment:
-      NODE_ENV: production
-      APP_HOST: 0.0.0.0
-      APP_PORT: "5010"
-      POSTGRES_HOST: database
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: ${POSTGRES_DB:-appdb}
-      POSTGRES_USER: ${POSTGRES_USER:-appuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-      # Container DNS differs from REDIS_HOST=localhost used by the local app.
-      REDIS_HOST: redis
-      REDIS_PORT: ${REDIS_PORT:?Set REDIS_PORT in backend/local.env}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in backend/local.env}
+      tags:
+        - backend:latest
     ports:
-      - "5010:5010"
-    depends_on:
-      database:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5010/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 20s
+      - "5004:5004"
+    volumes:
+      - ./backend:/backend
+    env_file:
+      - ./backend/.production.env
+    networks:
+      - backend
+      - frontend
+      - memcached
+
+  ##MEMCACHED##
+  memcached:
+    image: memcached:latest
+    container_name: memcached
+    restart: always
+    ports:
+      - "11211:11211"
+    networks:
+      - backend
+      - memcached
+
+##network##
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+  memcached:
+    driver: bridge
+
+##volumes##
 volumes:
   pgdata:
-  redisdata:

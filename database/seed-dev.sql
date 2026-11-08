@@ -1,3 +1,2 @@
--- Application data is created after schema migrations.
--- Run `yarn db:migrate` and then `yarn db:seed` from backend/.
--- Configure SEED_USER_NAME, SEED_USER_EMAIL and SEED_USER_PASSWORD explicitly.
+-- Example seed
+INSERT INTO users (name, email) VALUES ('Dev User', 'dev@example.com');

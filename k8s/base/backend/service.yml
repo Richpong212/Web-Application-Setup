@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-backend
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/component: sample-app-backend
+spec:
+  type: ClusterIP
+
+  selector:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/component: sample-app-backend
+
+  ports:
+    - name: http
+      port: 5010
+      targetPort: http
+      protocol: TCP

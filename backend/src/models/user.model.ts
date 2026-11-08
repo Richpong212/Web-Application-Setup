@@ -1,4 +1,4 @@
-import { Model, DataTypes, fn, col } from "sequelize";
+import { Model, DataTypes } from "sequelize";
 import { db } from "../config/connectDb";
 
 class User extends Model {
@@ -7,7 +7,6 @@ class User extends Model {
   public email!: string;
   public password!: string;
   public isAdmin!: boolean;
-  public isEmailVerified!: boolean;
   public createdAt!: Date;
   public updatedAt!: Date;
 }
@@ -24,7 +23,6 @@ User.init(
       allowNull: false,
     },
     email: {
-      validate: { isEmail: true },
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -32,14 +30,9 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    isEmailVerified: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
     isAdmin: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      allowNull: true,
       defaultValue: false,
     },
   },
@@ -48,32 +41,7 @@ User.init(
     modelName: "User",
     tableName: "users",
     timestamps: true,
-    indexes: [
-      {
-        name: "users_email_unique",
-        unique: true,
-        fields: [fn("LOWER", col("email"))],
-      },
-    ],
-    // Password hashes are only loaded explicitly by authentication code.
-    defaultScope: {
-      attributes: { exclude: ["password"] },
-    },
-    scopes: {
-      withPassword: {
-        attributes: [
-          "id",
-          "name",
-          "email",
-          "password",
-          "isEmailVerified",
-          "isAdmin",
-          "createdAt",
-          "updatedAt",
-        ],
-      },
-    },
-  },
+  }
 );
 
 export default User;

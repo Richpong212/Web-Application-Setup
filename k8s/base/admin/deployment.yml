@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app-admin
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/component: sample-app-admin
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sample-app
+      app.kubernetes.io/component: sample-app-admin
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sample-app
+        app.kubernetes.io/component: sample-app-admin
+
+    spec:
+      serviceAccountName: sample-app-admin-service-account
+
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: sample-app-admin
+          image: sample-app-admin-image
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 3004
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: sample-app-admin-config
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+
+            limits:
+              cpu: 300m
+              memory: 256Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

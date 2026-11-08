@@ -1,33 +1,22 @@
 import { appConfig } from "../config/index.config";
 
 export const clientVerificationEmail = (name: string, token: string) => {
-  // Escape user-provided names before inserting them into HTML email content.
-  const safeName = name.replace(/[&<>"']/g, (character) => {
-    const entities: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      '"': "&quot;",
-      "'": "&#39;",
-      ">": "&gt;",
-    };
-    return entities[character];
-  });
-  const verifyUrl = `${appConfig.app.clientUrl}/verify?token=${token}`;
+  const verifyUrl = `${appConfig.app.clientUrl}/verify/${token}`;
   const currentYear = new Date().getFullYear();
 
-  const subject = "Confirm your email for RP Ranch";
+  const subject = "Confirm your email for DripForgeAI";
 
   const text = `Hey ${name},
 
-Welcome to RP Ranch.
+Welcome to DripForgeAI.
 
-Please confirm your email address to create your account:
+Please confirm your email address to activate your account:
 ${verifyUrl}
 
-If you didn’t request a RP Ranch account, you can ignore this email.
+If you didn’t create a DripForgeAI account, you can ignore this email.
 
-— The RP Ranch team
-© ${currentYear} RP Ranch
+— Richard from DripForgeAI
+© ${currentYear} DripForgeAI
 `;
 
   const html = `<!DOCTYPE html>
@@ -39,12 +28,12 @@ If you didn’t request a RP Ranch account, you can ignore this email.
   </head>
   <body style="margin:0; padding:0; background:#ffffff;">
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="margin:0 0 12px; color:#111;">Hey ${safeName},</h2>
+      <h2 style="margin:0 0 12px; color:#111;">Hey ${name},</h2>
 
-      <p style="margin:0 0 12px; color:#333;">Welcome to RP Ranch.</p>
+      <p style="margin:0 0 12px; color:#333;">Welcome to DripForgeAI.</p>
 
       <p style="margin:0 0 16px; color:#333;">
-        Please confirm your email address to create your account:
+        Please confirm your email address to activate your account:
       </p>
 
       <p style="margin:0 0 18px;">
@@ -66,15 +55,15 @@ If you didn’t request a RP Ranch account, you can ignore this email.
       </p>
 
       <p style="margin:0 0 16px; color:#666; font-size:13px;">
-        If you didn’t request a RP Ranch account, you can ignore this email.
+        If you didn’t create a DripForgeAI account, you can ignore this email.
       </p>
 
       <p style="margin:0; color:#333;">
-        — The RP Ranch team
+        — Richard from DripForgeAI
       </p>
 
       <p style="margin:12px 0 0; color:#999; font-size:12px;">
-        © ${currentYear} RP Ranch • Copenhagen, Denmark
+        © ${currentYear} DripForgeAI • Copenhagen, Denmark
       </p>
     </div>
   </body>

@@ -15,23 +15,16 @@ export const connectSMTPAccount = async () => {
     const transporter = nodemailer.createTransport({
       host: appConfig.smtp.host,
       port: Number(appConfig.smtp.port),
-      secure: appConfig.smtp.secure,
-      requireTLS: appConfig.smtp.requireTls,
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 10000,
-      auth: appConfig.smtp.authEnabled
-        ? {
-            user: appConfig.smtp.user,
-            pass: appConfig.smtp.password,
-          }
-        : undefined,
+      secure: false,
+      auth: {
+        user: appConfig.smtp.user,
+        pass: appConfig.smtp.password,
+      },
     });
 
     return transporter;
   } catch (error) {
-    void error;
-    throw new Error("Email transport initialization failed");
+    throw new Error(`Failed to connect to SMTP server: ${error}`);
   }
 };
 
@@ -45,23 +38,12 @@ export const sendEmail = async (emailData: IEmail) => {
       html: emailData.html,
       text: emailData.text,
     };
-    const info = await transporter.sendMail(mailOptions);
-    logger.info("[SMTP] Message delivered");
+    const info = transporter.sendMail(mailOptions);
+    logger.info(`Email sent to ${emailData.email}`);
 
     return { message: "Email sent", info };
   } catch (error) {
-    const failure = error as {
-      name?: string;
-      code?: string;
-      responseCode?: number;
-      command?: string;
-    };
-    logger.error("[SMTP] Delivery failed", {
-      errorName: failure.name,
-      errorCode: failure.code,
-      responseCode: failure.responseCode,
-      command: failure.command,
-    });
-    throw new Error("Email delivery failed");
+    logger.error(`Error sending email: ${error}`);
+    throw new Error(`Failed to send email: ${error}`);
   }
 };
