@@ -24,7 +24,7 @@ pg-hstore
 sequelize
 @types/sequelize
 
-redis
+ioredis
 
 @aws-sdk/client-s3
 @aws-sdk/s3-request-presigner

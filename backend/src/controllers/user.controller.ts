@@ -1,63 +1,55 @@
-import { Request, Response } from "express";
-import { logger } from "../utils/logger.utils";
-import { hashPassword } from "../utils/passwordHashing";
+import { NextFunction, Request, Response } from "express";
+
 import User from "../models/user.model";
-import { genToken } from "../utils/token";
-import { clientVerificationEmail } from "../services/VerificationEmail.template";
-import { sendEmail } from "../utils/sendEmail";
+import { registerUser, publicUser } from "../services/auth.service";
 
-// Create a new user
-export const createUser: any = async (req: Request, res: Response) => {
+// Request signup approval. A user is created only by the approval endpoint.
+export const createUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    // Extract user data from request body
-    const userData = req.body;
-
-    //hash the password
-    const hashedPassword = await hashPassword(userData.password);
-
-    //check if the user already exists
-    const existingUser = await User.findOne({
-      where: {
-        email: userData.email,
-      },
+    const result = await registerUser({
+      name: req.body.name,
+      email: req.body.email,
+      password: req.body.password,
     });
 
-    if (existingUser) {
-      return res.status(400).json({
-        message: "User already exists with this email",
-      });
-    }
-
-    //data to be saved
-    const newUser = {
-      ...userData,
-      password: hashedPassword,
-    };
-
-    // generate token
-    const token = genToken({ newUser }, "1h");
-
-    //prepare email data
-    const emailData = {
-      email: newUser.email,
-      subject: "Verify your account",
-      html: clientVerificationEmail(newUser.name, token).html,
-    };
-
-    // send verification email
-    await sendEmail(emailData);
-
-    // return res.status(201).json
-    return res.status(201).json({
-      message: "User created successfully",
-      data: {
-        ...newUser,
-        token,
-        emailData,
-      },
+    res.status(202).json({
+      message:
+        "If this email is eligible, you will receive an approval link. You can also log in or request a new link.",
+      data: { email: result.email },
     });
   } catch (error) {
-    logger.error("Error creating user:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return next(error);
+  }
+};
+
+export const getCurrentUser = (
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    res.json({ data: publicUser(res.locals.user as User) });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateCurrentUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const user = res.locals.user as User;
+
+    await user.update({ name: req.body.name });
+
+    res.json({ message: "Profile updated", data: publicUser(user) });
+  } catch (error) {
+    return next(error);
   }
 };

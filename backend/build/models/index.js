@@ -1,0 +1,37 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuditLog = exports.FarmInvitation = exports.FarmTask = exports.VaccinationRecord = exports.VaccinationSchedule = exports.FeedStage = exports.DailyRecord = exports.Flock = exports.FarmMember = exports.Farm = exports.PendingSignup = exports.UserToken = exports.Session = exports.User = void 0;
+// Import models explicitly so startup and seeders register the same schemas.
+var user_model_1 = require("./user.model");
+Object.defineProperty(exports, "User", { enumerable: true, get: function () { return __importDefault(user_model_1).default; } });
+var session_model_1 = require("./session.model");
+Object.defineProperty(exports, "Session", { enumerable: true, get: function () { return __importDefault(session_model_1).default; } });
+var userToken_model_1 = require("./userToken.model");
+Object.defineProperty(exports, "UserToken", { enumerable: true, get: function () { return __importDefault(userToken_model_1).default; } });
+var pendingSignup_model_1 = require("./pendingSignup.model");
+Object.defineProperty(exports, "PendingSignup", { enumerable: true, get: function () { return __importDefault(pendingSignup_model_1).default; } });
+const farm_model_1 = __importDefault(require("./farm.model"));
+exports.Farm = farm_model_1.default;
+const farmMember_model_1 = __importDefault(require("./farmMember.model"));
+exports.FarmMember = farmMember_model_1.default;
+farm_model_1.default.hasMany(farmMember_model_1.default, { as: "memberships", foreignKey: "farmId" });
+farmMember_model_1.default.belongsTo(farm_model_1.default, { foreignKey: "farmId" });
+var flock_model_1 = require("./flock.model");
+Object.defineProperty(exports, "Flock", { enumerable: true, get: function () { return __importDefault(flock_model_1).default; } });
+var dailyRecord_model_1 = require("./dailyRecord.model");
+Object.defineProperty(exports, "DailyRecord", { enumerable: true, get: function () { return __importDefault(dailyRecord_model_1).default; } });
+var feedStage_model_1 = require("./feedStage.model");
+Object.defineProperty(exports, "FeedStage", { enumerable: true, get: function () { return __importDefault(feedStage_model_1).default; } });
+var vaccinationSchedule_model_1 = require("./vaccinationSchedule.model");
+Object.defineProperty(exports, "VaccinationSchedule", { enumerable: true, get: function () { return __importDefault(vaccinationSchedule_model_1).default; } });
+var vaccinationRecord_model_1 = require("./vaccinationRecord.model");
+Object.defineProperty(exports, "VaccinationRecord", { enumerable: true, get: function () { return __importDefault(vaccinationRecord_model_1).default; } });
+var farmTask_model_1 = require("./farmTask.model");
+Object.defineProperty(exports, "FarmTask", { enumerable: true, get: function () { return __importDefault(farmTask_model_1).default; } });
+var farmInvitation_model_1 = require("./farmInvitation.model");
+Object.defineProperty(exports, "FarmInvitation", { enumerable: true, get: function () { return __importDefault(farmInvitation_model_1).default; } });
+var auditLog_model_1 = require("./auditLog.model");
+Object.defineProperty(exports, "AuditLog", { enumerable: true, get: function () { return __importDefault(auditLog_model_1).default; } });

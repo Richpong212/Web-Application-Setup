@@ -1,97 +1,88 @@
-import express from "express";
-import { Request, Response } from "express";
-import Memcached from "memcached";
+import "./models";
 import { appConfig } from "./config/index.config";
-import morgan from "morgan";
-import cors from "cors";
+import { connectDb, db } from "./config/connectDb";
+import { redis, connectRedis } from "./config/redis";
+import { createApp } from "./app";
 import { logger } from "./utils/logger.utils";
-import { connectDb } from "./config/connectDb";
-import cookieParser from "cookie-parser";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import compression from "compression";
-import userRouter from "./routes/user.route";
 
-const app = express();
-const port = appConfig.app.port;
-const memcachedHost = process.env.MEMCACHED_HOST || "localhost";
-const memcachedPort = Number(process.env.MEMCACHED_PORT || 11211);
+const start = async () => {
+  logger.info(`[STARTUP] Initializing backend in ${appConfig.app.mode} mode`);
 
-//rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests, please try again later.",
-});
-
-//middlewares
-app.use(morgan("combined"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(
-  cors({
-    credentials: true,
-  }),
-);
-app.use(cookieParser());
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-    },
-  }),
-);
-app.use(limiter);
-app.use(compression()); // compress response for speed
-
-const memcached = new Memcached(
-  `${memcachedHost}:${memcachedPort}`,
-);
-
-//routes
-// health check endpoint (keep only one)
-app.get("/health", (_req: Request, res: Response) => {
-  res.status(200).json({ message: "Server is healthy" });
-});
-
-// cachinng endpoint
-app.get("/", (req: Request, res: Response) => {
-  const cacheKey = "testkey";
-  memcached.get(cacheKey, (err: Error | null, data: unknown) => {
-    if (err) {
-      logger.error("Error retrieving from cache:", err);
-      return res.status(500).json({ error: "Error retrieving from cache" });
-    }
-    if (data) {
-      logger.info("Data retrieved from cache:", data);
-      return res.status(200).json({ cached: true, message: "data from cache" });
-    } else {
-      const message = "Hello from the backend!";
-      memcached.set(cacheKey, message, 10, (err: Error | null) => {
-        if (err) {
-          logger.error("Error saving to cache:", err);
-          return res.status(500).json({ error: "Error saving to cache" });
-        }
-        return res.status(200).json({ cached: false, message });
-      });
-    }
-  });
-});
-
-//User routes
-app.use("/api/v1/users", userRouter);
-
-app.listen(port, async () => {
+  // Connect required services before accepting requests.
+  await Promise.all([connectDb(), connectRedis()]);
+  logger.info("[STARTUP] Required service connections initialized");
   logger.info(
-    `Server is running on http://${appConfig.app.app_host}:${port} in ${appConfig.app.mode} mode`,
+    "[SMTP] Email module configured; SMTP connections open when sending mail",
   );
 
-  await connectDb();
-});
+  // Initialize the application and start the HTTP listener.
+  const app = createApp();
+  const host = appConfig.app.app_host || "0.0.0.0";
+  const port = Number(appConfig.app.port || 5010);
+  const server = app.listen(port, host, () => {
+    logger.info(`[HTTP] Listening at http://${host}:${port}`);
+    logger.info(
+      "[STARTUP] Backend ready; health probes available at /health/live and /health/ready",
+    );
+  });
 
-// Handle invalid routes
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ message: "Route not found" });
-});
+  // Drain active requests before closing service connections.
+  let shuttingDown = false;
 
-export default app;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) {
+      return;
+    }
+
+    shuttingDown = true;
+    logger.info(`[SHUTDOWN] ${signal} received; draining HTTP requests`);
+    app.locals.shuttingDown = true;
+
+    const deadline = setTimeout(() => {
+      logger.error(
+        "[SHUTDOWN] Drain deadline exceeded; closing remaining connections",
+      );
+      server.closeAllConnections();
+      redis.disconnect();
+      process.exitCode = 1;
+    }, 10000);
+    deadline.unref();
+
+    server.close(() => {
+      logger.info(
+        "[SHUTDOWN] HTTP listener closed; closing PostgreSQL and Redis",
+      );
+      void Promise.allSettled([db.close(), redis.quit()])
+        .then((results) => {
+          results.forEach((result, index) => {
+            const service = index === 0 ? "PostgreSQL" : "Redis";
+
+            if (result.status === "fulfilled") {
+              logger.info(`[SHUTDOWN] ${service} closed`);
+            } else {
+              logger.error(`[SHUTDOWN] ${service} close failed`, result.reason);
+              process.exitCode = 1;
+            }
+          });
+          logger.info("[SHUTDOWN] Backend shutdown completed");
+        })
+        .finally(() => clearTimeout(deadline));
+    });
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
+
+  server.on("error", (error) => {
+    logger.error("HTTP server failed", error);
+    shutdown("HTTP server error");
+    process.exitCode = 1;
+  });
+};
+
+void start().catch(async (error: unknown) => {
+  logger.error("Backend startup failed", error);
+  redis.disconnect();
+  await db.close();
+  process.exitCode = 1;
+});

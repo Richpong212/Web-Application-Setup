@@ -1,112 +1,69 @@
-import { check } from "express-validator";
+import { body } from "express-validator";
 
-// Registration validation
+// Normalize emails consistently without changing providers' address semantics.
+const emailField = () =>
+  body("email")
+    .isString()
+    .withMessage("Email is required")
+    .bail()
+    .trim()
+    .toLowerCase()
+    .isLength({ max: 254 })
+    .withMessage("Email is too long")
+    .isEmail()
+    .withMessage("Invalid email");
+
+// Passwords must be hashed exactly as entered: never trim or HTML-escape them.
+const passwordField = () =>
+  body("password")
+    .isString()
+    .withMessage("Password is required")
+    .bail()
+    .isLength({ min: 12 })
+    .withMessage("Password must be at least 12 characters long")
+    .isStrongPassword()
+    .withMessage(
+      "Password must contain lowercase, uppercase, a number and a symbol",
+    )
+    .custom((value: string) => Buffer.byteLength(value, "utf8") <= 72)
+    .withMessage("Password must not exceed 72 bytes");
+
+const nameField = () =>
+  body("name")
+    .isString()
+    .withMessage("Name is required")
+    .bail()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Name must contain 1 to 100 characters");
+
+const tokenField = () =>
+  body("token")
+    .isString()
+    .bail()
+    .matches(/^[a-f0-9]{64}$/)
+    .withMessage("Invalid token");
+
 export const registrationValidation = [
-  check("name").notEmpty().withMessage("Name is required").trim().escape(),
-  check("email")
-    .isEmail()
-    .withMessage("Invalid email")
-    .notEmpty()
-    .withMessage("Email is required")
-    .trim()
-    .escape()
-    .normalizeEmail()
-    .customSanitizer((value) => value.replace(/[^\x20-\x7E]/g, ""))
-    .custom(async (value) => {
-      // Additional custom checks for commonly abused CVEs
-      const invalidPatterns = [
-        /(\b(and|or)\b\s*=\s*\b(and|or)\b)/i, // SQL tautology
-        /[\^<>()[\]{};'",]/, // Potentially harmful special characters
-        /(UNION\s+SELECT)/i, // SQL UNION attack
-      ];
-      if (invalidPatterns.some((pattern) => pattern.test(value))) {
-        throw new Error("Email contains potentially harmful characters");
-      }
-      const bannedDomains = ["example.com", "mailinator.com", "fakeemail.com"];
-      const domain = value.split("@")[1];
-      if (bannedDomains.includes(domain)) {
-        throw new Error("Email domain is not allowed");
-      }
-    }),
-  check("password")
-    .notEmpty()
-    .withMessage("Password is required")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters long")
-    .isStrongPassword()
-    .trim()
-    .escape()
-    .withMessage(
-      "Password must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character"
-    ),
+  nameField(),
+  emailField(),
+  passwordField(),
 ];
 
-// Login validation
 export const loginValidation = [
-  check("email")
-    .isEmail()
-    .notEmpty()
-    .withMessage("Email is required")
-    .trim()
-    .escape()
-    .normalizeEmail()
-    .customSanitizer((value) => value.replace(/[^\x20-\x7E]/g, ""))
-    .custom(async (value) => {
-      // Additional custom checks for commonly abused CVEs
-      const invalidPatterns = [
-        /(\b(and|or)\b\s*=\s*\b(and|or)\b)/i, // SQL tautology
-        /[\^<>()[\]{};'",]/, // Potentially harmful special characters
-        /(UNION\s+SELECT)/i, // SQL UNION attack
-      ];
-      if (invalidPatterns.some((pattern) => pattern.test(value))) {
-        throw new Error("Email contains potentially harmful characters");
-      }
-      const bannedDomains = ["example.com", "mailinator.com", "fakeemail.com"];
-      const domain = value.split("@")[1];
-      if (bannedDomains.includes(domain)) {
-        throw new Error("Email domain is not allowed");
-      }
-    }),
-  check("password")
+  emailField(),
+  body("password")
+    .isString()
+    .bail()
     .notEmpty()
     .withMessage("Password is required")
-    .isLength({ min: 6 })
-    .trim()
-    .escape(),
+    .custom((value: string) => Buffer.byteLength(value, "utf8") <= 72)
+    .withMessage("Password must not exceed 72 bytes"),
 ];
 
-export const updateUserValidation = [
-  check("name").trim().escape(),
-  check("email")
-    .isEmail()
-    .withMessage("Invalid email")
-    .trim()
-    .escape()
-    .normalizeEmail()
-    .customSanitizer((value) => value.replace(/[^\x20-\x7E]/g, ""))
-    .custom(async (value) => {
-      // Additional custom checks for commonly abused CVEs
-      const invalidPatterns = [
-        /(\b(and|or)\b\s*=\s*\b(and|or)\b)/i, // SQL tautology
-        /[\^<>()[\]{};'",]/, // Potentially harmful special characters
-        /(UNION\s+SELECT)/i, // SQL UNION attack
-      ];
-      if (invalidPatterns.some((pattern) => pattern.test(value))) {
-        throw new Error("Email contains potentially harmful characters");
-      }
-      const bannedDomains = ["example.com", "mailinator.com", "fakeemail.com"];
-      const domain = value.split("@")[1];
-      if (bannedDomains.includes(domain)) {
-        throw new Error("Email domain is not allowed");
-      }
-    }),
-  check("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters long")
-    .isStrongPassword()
-    .trim()
-    .escape()
-    .withMessage(
-      "Password must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character"
-    ),
-];
+export const emailValidation = [emailField()];
+export const tokenValidation = [tokenField()];
+export const resetPasswordValidation = [tokenField(), passwordField()];
+
+// Email changes need a separate verification flow. Profile updates only allow name.
+export const updateUserValidation = [nameField()];

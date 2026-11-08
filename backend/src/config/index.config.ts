@@ -10,7 +10,7 @@ const envFilePath =
   envFileCandidates.find((candidatePath) => existsSync(candidatePath)) ??
   `.${mode}.env`;
 
-config({ path: envFilePath });
+if (mode !== "test") config({ path: envFilePath });
 
 const requiredFromEnv = (key: string) => {
   const value = process.env[key];
@@ -36,21 +36,20 @@ const csvFromEnv = (value: string | undefined) =>
 export const appConfig = {
   app: {
     mode,
-    port: process.env.APP_PORT,
+    port: numberFromEnv(process.env.APP_PORT, 5010),
     app_host: process.env.APP_HOST,
     jwt_secret: requiredFromEnv("JWT_SECRET"),
     secretKey: requiredFromEnv("SECRET_KEY"),
     clientUrl: requiredFromEnv("CLIENT_URL"),
     allowedOrigins: csvFromEnv(process.env.ALLOWED_ORIGINS),
+    trustedProxies: csvFromEnv(process.env.TRUSTED_PROXIES),
     bodyLimit: process.env.REQUEST_BODY_LIMIT || "100kb",
     cookieName: process.env.AUTH_COOKIE_NAME || "rentaa_session",
     cookieSameSite:
       (process.env.AUTH_COOKIE_SAME_SITE as
-        | "strict"
-        | "lax"
-        | "none"
-        | undefined) || "strict",
-    loginTokenTtl: process.env.LOGIN_TOKEN_TTL || "1h",
+        "strict" | "lax" | "none" | undefined) || "strict",
+    loginTokenTtl: process.env.LOGIN_TOKEN_TTL || "15m",
+    refreshTokenTtlDays: numberFromEnv(process.env.REFRESH_TOKEN_TTL_DAYS, 7),
     authCookieMaxAgeMs: numberFromEnv(
       process.env.AUTH_COOKIE_MAX_AGE_MS,
       60 * 60 * 1000,
@@ -59,7 +58,7 @@ export const appConfig = {
       process.env.AUTH_RATE_LIMIT_WINDOW_MS,
       15 * 60 * 1000,
     ),
-    authRateLimitMax: numberFromEnv(process.env.AUTH_RATE_LIMIT_MAX, 10),
+    authRateLimitMax: numberFromEnv(process.env.AUTH_RATE_LIMIT_MAX, 30),
     adminRateLimitWindowMs: numberFromEnv(
       process.env.ADMIN_RATE_LIMIT_WINDOW_MS,
       15 * 60 * 1000,
@@ -67,9 +66,9 @@ export const appConfig = {
     adminRateLimitMax: numberFromEnv(process.env.ADMIN_RATE_LIMIT_MAX, 60),
     globalRateLimitWindowMs: numberFromEnv(
       process.env.GLOBAL_RATE_LIMIT_WINDOW_MS,
-      15 * 60 * 1000,
+      60 * 1000,
     ),
-    globalRateLimitMax: numberFromEnv(process.env.GLOBAL_RATE_LIMIT_MAX, 100),
+    globalRateLimitMax: numberFromEnv(process.env.GLOBAL_RATE_LIMIT_MAX, 3000),
   },
   cache: {
     enabled: process.env.REDIS_CACHE_ENABLED !== "false",
@@ -95,9 +94,12 @@ export const appConfig = {
     db_user: process.env.POSTGRES_USER,
     db_password: process.env.POSTGRES_PASSWORD,
     db_host: process.env.POSTGRES_HOST,
-    db_port: Number(process.env.POSTGRES_PORT),
+    db_port: numberFromEnv(process.env.POSTGRES_PORT, 5432),
   },
   smtp: {
+    secure: process.env.SMTP_SECURE === "true",
+    requireTls: process.env.SMTP_REQUIRE_TLS === "true",
+    authEnabled: process.env.SMTP_AUTH_ENABLED !== "false",
     host: requiredFromEnv("SMTP_HOST"),
     port: Number(process.env.SMTP_PORT),
     user: requiredFromEnv("SMTP_EMAIL"),

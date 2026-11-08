@@ -26,7 +26,7 @@ WORKDIR /backend
 
 ENV NODE_ENV=production
 # Create non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S -g 10001 appgroup && adduser -S -u 10001 appuser -G appgroup
 
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn ./.yarn
@@ -45,7 +45,7 @@ RUN rm -rf /usr/local/lib/node_modules/npm \
 
 COPY --from=builder --chown=appuser:appgroup  /backend/build ./build
 
-EXPOSE 5009
+EXPOSE 5010
 
 USER appuser
 
